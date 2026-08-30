@@ -21,3 +21,13 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# local-only analysis docs (never pushed, per explicit instruction)
+/Generate-MD-Files/
+
+# NOTE: .claude/agents/ is intentionally NOT gitignored -- gitignoring it
+# previously made Claude Code's agent picker stop discovering the custom
+# subagents defined there (the discovery scanner is gitignore-aware and
+# skips ignored paths). It stays untracked and must never be `git add`ed;
+# rely on always staging files by explicit name, never -A/., to keep it
+# out of commits without breaking agent discovery.
