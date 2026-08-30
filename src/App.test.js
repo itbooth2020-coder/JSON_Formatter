@@ -24,7 +24,7 @@ beforeEach(() => {
 test('renders the header and the home page with a card for every tool', () => {
   render(<App />);
 
-  expect(screen.getByRole('heading', { name: /JsonForge/i })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /JsonForge/i, level: 1 })).toBeInTheDocument();
 
   TOOLS.forEach((tool) => {
     expect(screen.getByRole('link', { name: new RegExp(tool.name, 'i') })).toHaveAttribute(
@@ -39,7 +39,12 @@ test('navigating to /json-formatter renders the formatter tool', async () => {
   render(<App />);
 
   expect(await screen.findByTestId('input-editor')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: /^JSON Formatter$/i })).toBeInTheDocument();
+  // "JSON Formatter" now appears twice -- once as the page's own heading,
+  // once again as the footer's page-aware title -- so assert at least one
+  // rather than a single unique match.
+  expect(
+    screen.getAllByRole('heading', { name: /^JSON Formatter$/i }).length
+  ).toBeGreaterThan(0);
 });
 
 test('unknown routes redirect to the home page', () => {
