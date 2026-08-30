@@ -11,3 +11,14 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Monaco line decorations for JsonEditor's error/success highlighting.
+   Monaco decorations are applied via CSS class name, so these can't be
+   inline styles -- colors mirror src/utils/statusColors.js. */
+.json-editor-error-line {
+  background-color: #FEE2E2 !important;
+}
+
+.json-editor-error-line-margin {
+  border-left: 3px solid #B91C1C;
+}
