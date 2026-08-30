@@ -84,3 +84,17 @@ test('Beautify, Minify, and Clear buttons work', async () => {
     expect(screen.getByTestId('output-editor').value).toBe('');
   });
 });
+
+test('Beautify, Minify, and Clear all show a friendly message on empty input', async () => {
+  render(<App />);
+
+  for (const name of [/beautify/i, /minify/i, /clear/i]) {
+    fireEvent.click(screen.getByRole('button', { name }));
+    // eslint-disable-next-line no-await-in-loop
+    await waitFor(() => {
+      expect(
+        screen.getByText(/JSON input is empty\. Please enter some JSON\./i)
+      ).toBeInTheDocument();
+    });
+  }
+});

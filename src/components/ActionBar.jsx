@@ -1,31 +1,55 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button, Stack } from "@mui/material";
 
 const ActionBar = ({ onFormat, onMinify, onClear, onUpload }) => {
+  // Beautify starts active since the app auto-formats to beautified JSON
+  // by default as the user types.
+  const [activeAction, setActiveAction] = useState("format");
+
+  const runAction = (action, handler) => {
+    setActiveAction(action);
+    handler();
+  };
+
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => onUpload(reader.result);
+    reader.onload = () => {
+      setActiveAction("upload");
+      onUpload(reader.result);
+    };
     reader.readAsText(file);
   };
 
   return (
     <Stack direction="row" spacing={2} sx={{ my: 2 }}>
-      <Button variant="contained" onClick={onFormat}>
+      <Button
+        variant={activeAction === "format" ? "contained" : "outlined"}
+        onClick={() => runAction("format", onFormat)}
+      >
         Beautify
       </Button>
 
-      <Button variant="outlined" onClick={onMinify}>
+      <Button
+        variant={activeAction === "minify" ? "contained" : "outlined"}
+        onClick={() => runAction("minify", onMinify)}
+      >
         Minify
       </Button>
 
-      <Button variant="outlined" onClick={onClear}>
+      <Button
+        variant={activeAction === "clear" ? "contained" : "outlined"}
+        onClick={() => runAction("clear", onClear)}
+      >
         Clear
       </Button>
 
-      <Button variant="outlined" component="label">
+      <Button
+        variant={activeAction === "upload" ? "contained" : "outlined"}
+        component="label"
+      >
         Upload JSON
         <input hidden type="file" accept=".json" onChange={handleFile} />
       </Button>

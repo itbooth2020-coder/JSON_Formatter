@@ -6,6 +6,10 @@ import ActionBar from "./components/ActionBar";
 import OutputViewer from "./components/OutputViewer";
 import { validateAndFormatJSON } from "./utils/jsonUtils";
 
+const EMPTY_INPUT_ERROR = {
+  message: "JSON input is empty. Please enter some JSON.",
+};
+
 function App() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
@@ -14,6 +18,12 @@ function App() {
   const debounceRef = useRef(null);
 
   const validateAndSetOutput = (raw) => {
+    if (!raw.trim()) {
+      setOutput("");
+      setError(EMPTY_INPUT_ERROR);
+      return;
+    }
+
     const result = validateAndFormatJSON(raw);
 
     if (result.valid) {
@@ -49,6 +59,13 @@ function App() {
 
   const handleMinify = () => {
     clearTimeout(debounceRef.current);
+
+    if (!input.trim()) {
+      setOutput("");
+      setError(EMPTY_INPUT_ERROR);
+      return;
+    }
+
     const result = validateAndFormatJSON(input);
 
     if (result.valid) {
@@ -62,6 +79,12 @@ function App() {
 
   const handleClear = () => {
     clearTimeout(debounceRef.current);
+
+    if (!input.trim()) {
+      setError(EMPTY_INPUT_ERROR);
+      return;
+    }
+
     setInput("");
     setOutput("");
     setError(null);

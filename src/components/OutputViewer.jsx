@@ -73,7 +73,7 @@ const OutputViewer = ({ output, error }) => {
           <br />
           {error.line && <>📍 Line: {error.line}<br /></>}
           {error.column && <>📌 Column: {error.column}<br /></>}
-          <div>💡 Fix: {error.suggestion}</div>
+          {error.suggestion && <div>💡 Fix: {error.suggestion}</div>}
         </div>
       )}
 
