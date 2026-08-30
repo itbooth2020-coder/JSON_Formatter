@@ -1,19 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Paper,
   Typography,
   IconButton,
   Snackbar,
+  useTheme,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import Editor from "@monaco-editor/react";
-import { STATUS_COLORS } from "../utils/statusColors";
+import { getStatusColors } from "../utils/statusColors";
 
-const OutputViewer = ({ output, error }) => {
+const SUCCESS_MESSAGE_DURATION_MS = 10000;
+
+const OutputViewer = ({
+  output,
+  error,
+  language = "json",
+  successMessage = "Valid JSON",
+  label = "Formatted Output",
+}) => {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const theme = useTheme();
+  const statusColors = getStatusColors(theme.palette.mode);
+  const isValid = !error && !!output;
+
+  // The "Valid JSON" message only needs to confirm the moment things
+  // became valid -- auto-hide it after a while so it doesn't linger
+  // indefinitely (errors stay visible until fixed, since those need
+  // ongoing attention).
+  useEffect(() => {
+    if (!isValid) {
+      setShowSuccess(false);
+      return;
+    }
+
+    setShowSuccess(true);
+    const timer = setTimeout(() => setShowSuccess(false), SUCCESS_MESSAGE_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isValid, output]);
 
   const copyToClipboard = async () => {
     if (!output) return;
@@ -30,6 +58,7 @@ const OutputViewer = ({ output, error }) => {
 
   return (
     <Paper
+      variant="outlined"
       sx={{
         p: 2,
         flex: 1,
@@ -40,9 +69,9 @@ const OutputViewer = ({ output, error }) => {
         minHeight: 0,
       }}
     >
-      <Typography variant="h6">Formatted Output</Typography>
+      <Typography variant="h6">{label}</Typography>
 
-      {/* ✅ Copy Button with toggle icon */}
+      {/* Copy button with toggle icon */}
       <IconButton
         onClick={copyToClipboard}
         sx={{ position: "absolute", top: 10, right: 10 }}
@@ -56,12 +85,12 @@ const OutputViewer = ({ output, error }) => {
         )}
       </IconButton>
 
-      {/* ✅ Error UI */}
+      {/* Error panel */}
       {error && (
         <div
           style={{
-            background: STATUS_COLORS.error.background,
-            color: STATUS_COLORS.error.text,
+            background: statusColors.error.background,
+            color: statusColors.error.text,
             padding: 10,
             borderRadius: 6,
             marginTop: 10,
@@ -77,12 +106,12 @@ const OutputViewer = ({ output, error }) => {
         </div>
       )}
 
-      {/* ✅ Success UI */}
-      {!error && output && (
+      {/* Success panel */}
+      {isValid && showSuccess && (
         <div
           style={{
-            background: STATUS_COLORS.success.background,
-            color: STATUS_COLORS.success.text,
+            background: statusColors.success.background,
+            color: statusColors.success.text,
             padding: 10,
             borderRadius: 6,
             marginTop: 10,
@@ -90,16 +119,17 @@ const OutputViewer = ({ output, error }) => {
             fontSize: 13,
           }}
         >
-          ✅ Valid JSON
+          ✅ {successMessage}
         </div>
       )}
 
-      {/* ✅ Monaco Output */}
+      {/* Output editor */}
       <div style={{ flex: 1, minHeight: 0 }}>
         <Editor
           height="100%"
-          defaultLanguage="json"
+          defaultLanguage={language}
           value={output || ""}
+          theme={theme.palette.mode === "dark" ? "vs-dark" : "light"}
           options={{
             readOnly: true,
             minimap: { enabled: false },
@@ -113,7 +143,6 @@ const OutputViewer = ({ output, error }) => {
         />
       </div>
 
-      {/* ✅ Snackbar Notification */}
       <Snackbar
         open={copied}
         message="✅ Copied to clipboard"
@@ -129,144 +158,3 @@ const OutputViewer = ({ output, error }) => {
 };
 
 export default OutputViewer;
-
-
-// import React from "react";
-// import { Paper, Typography, IconButton } from "@mui/material";
-// import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-// import Editor from "@monaco-editor/react";
-
-// const OutputViewer = ({ output, error }) => {
-//   const copyToClipboard = () => {
-//     if (output) {
-//       navigator.clipboard.writeText(output);
-//     }
-//   };
-
-//   return (
-//     <Paper
-//       sx={{
-//         p: 2,
-//         flex: 1,
-//         display: "flex",
-//         flexDirection: "column",
-//         position: "relative",
-//         height: "100%",     // ✅ FIX 1
-//         minHeight: 0,       // ✅ FIX 2 (critical for flex scroll)
-//       }}
-//     >
-//       <Typography variant="h6">Formatted Output</Typography>
-
-//       {/* ✅ Copy Button */}
-//       <IconButton
-//         onClick={copyToClipboard}
-//         sx={{ position: "absolute", top: 10, right: 10 }}
-//       >
-//         <ContentCopyIcon />
-//       </IconButton>
-
-//       {/* ✅ Error UI */}
-//       {error && (
-//         <div
-//           style={{
-//             background: "#ffe6e6",
-//             padding: 10,
-//             borderRadius: 6,
-//             marginTop: 10,
-//             marginBottom: 10,
-//             fontSize: 13,
-//           }}
-//         >
-//           <strong>❌ Error:</strong> {error.message}
-//           <br />
-//           {error.line && <>📍 Line: {error.line}<br /></>}
-//           {error.column && <>📌 Column: {error.column}<br /></>}
-//           <div>💡 Fix: {error.suggestion}</div>
-//         </div>
-//       )}
-
-//       {/* ✅ Monaco Output Viewer */}
-//       <div style={{ flex: 1, minHeight: 0 }}>
-//         <Editor
-//           height="100%"
-//           defaultLanguage="json"
-//           value={output || ""}
-//           options={{
-//             readOnly: true,                 // ✅ important
-//             minimap: { enabled: false },
-//             fontSize: 14,
-//             lineNumbers: "on",              // ✅ line numbers added
-//             scrollBeyondLastLine: false,
-//             wordWrap: "on",                 // ✅ mobile friendly
-//             folding: true,
-//             renderLineHighlight: "all",
-//           }}
-//         />
-//       </div>
-//     </Paper>
-//   );
-// };
-
-// export default OutputViewer;
-
-
-
-
-
-// import React from "react";
-// import { Paper, Typography, IconButton } from "@mui/material";
-// import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-// import Editor from "@monaco-editor/react";
-
-// const OutputViewer = ({ output, error }) => {
-//   const copyToClipboard = () => {
-//     navigator.clipboard.writeText(output);
-//   };
-
-//   return (
-//     <Paper
-//       sx={{
-//         p: 2,
-//         flex: 1,
-//         display: "flex",
-//         flexDirection: "column",
-//         position: "relative",
-//       }}
-//     >
-//       <Typography variant="h6">Formatted Output</Typography>
-
-//       <IconButton
-//         onClick={copyToClipboard}
-//         sx={{ position: "absolute", top: 10, right: 10 }}
-//       >
-//         <ContentCopyIcon />
-//       </IconButton>
-
-//       {/* ✅ Error UI */}
-//       {error && (
-//         <div
-//           style={{
-//             background: "#ffe6e6",
-//             padding: 10,
-//             borderRadius: 6,
-//             marginTop: 10,
-//             marginBottom: 10,
-//           }}
-//         >
-//           <strong>❌ Error:</strong> {error.message}
-//           <br />
-//           {error.line && <>📍 Line: {error.line}<br /></>}
-//           {error.column && <>📌 Column: {error.column}<br /></>}
-//           <div>💡 Fix: {error.suggestion}</div>
-//         </div>
-//       )}
-
-//       {/* ✅ Output */}
-//       <pre style={{ marginTop: 10, overflow: "auto", flex: 1 }}>
-//         {output}
-//       </pre>
-//     </Paper>
-//   );
-// };
-
-// export default OutputViewer;

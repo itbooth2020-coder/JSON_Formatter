@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Button, Stack } from "@mui/material";
 
 const ActionBar = ({ onFormat, onMinify, onClear, onUpload }) => {
-  // Beautify starts active since the app auto-formats to beautified JSON
-  // by default as the user types.
-  const [activeAction, setActiveAction] = useState("format");
+  // Beautify starts active (when available) since the app auto-formats to
+  // beautified JSON by default as the user types.
+  const [activeAction, setActiveAction] = useState(onFormat ? "format" : null);
 
   const runAction = (action, handler) => {
     setActiveAction(action);
@@ -25,34 +25,42 @@ const ActionBar = ({ onFormat, onMinify, onClear, onUpload }) => {
 
   return (
     <Stack direction="row" spacing={2} sx={{ my: 2 }}>
-      <Button
-        variant={activeAction === "format" ? "contained" : "outlined"}
-        onClick={() => runAction("format", onFormat)}
-      >
-        Beautify
-      </Button>
+      {onFormat && (
+        <Button
+          variant={activeAction === "format" ? "contained" : "outlined"}
+          onClick={() => runAction("format", onFormat)}
+        >
+          Beautify
+        </Button>
+      )}
 
-      <Button
-        variant={activeAction === "minify" ? "contained" : "outlined"}
-        onClick={() => runAction("minify", onMinify)}
-      >
-        Minify
-      </Button>
+      {onMinify && (
+        <Button
+          variant={activeAction === "minify" ? "contained" : "outlined"}
+          onClick={() => runAction("minify", onMinify)}
+        >
+          Minify
+        </Button>
+      )}
 
-      <Button
-        variant={activeAction === "clear" ? "contained" : "outlined"}
-        onClick={() => runAction("clear", onClear)}
-      >
-        Clear
-      </Button>
+      {onClear && (
+        <Button
+          variant={activeAction === "clear" ? "contained" : "outlined"}
+          onClick={() => runAction("clear", onClear)}
+        >
+          Clear
+        </Button>
+      )}
 
-      <Button
-        variant={activeAction === "upload" ? "contained" : "outlined"}
-        component="label"
-      >
-        Upload JSON
-        <input hidden type="file" accept=".json" onChange={handleFile} />
-      </Button>
+      {onUpload && (
+        <Button
+          variant={activeAction === "upload" ? "contained" : "outlined"}
+          component="label"
+        >
+          Upload JSON
+          <input hidden type="file" accept=".json" onChange={handleFile} />
+        </Button>
+      )}
     </Stack>
   );
 };

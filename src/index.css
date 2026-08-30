@@ -1,24 +1,33 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas,
+    'Courier New', monospace;
 }
 
-/* Monaco line decorations for JsonEditor's error/success highlighting.
-   Monaco decorations are applied via CSS class name, so these can't be
-   inline styles -- colors mirror src/utils/statusColors.js. */
+/* Monaco line decorations for JsonEditor's error highlighting. Monaco
+   decorations are applied via CSS class name, so these can't be inline
+   styles -- colors mirror src/utils/statusColors.js. JsonEditor picks
+   between the light/dark class pair based on the app's theme mode. */
 .json-editor-error-line {
   background-color: #FEE2E2 !important;
 }
 
 .json-editor-error-line-margin {
   border-left: 3px solid #B91C1C;
+}
+
+.json-editor-error-line-dark {
+  background-color: rgba(185, 28, 28, 0.25) !important;
+}
+
+.json-editor-error-line-margin-dark {
+  border-left: 3px solid #FCA5A5;
 }

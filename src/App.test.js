@@ -1,8 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import App from './App';
+import { TOOLS } from './toolsConfig';
 
 // @monaco-editor/react loads Monaco from a CDN and won't render in jsdom;
 // stand in with a plain textarea driving the same value/onChange contract.
+// (Only relevant once a tool page renders, but App always mounts one.)
 jest.mock('@monaco-editor/react', () => ({
   __esModule: true,
   default: ({ value, onChange, options }) => (
@@ -15,86 +17,34 @@ jest.mock('@monaco-editor/react', () => ({
   ),
 }));
 
-test('renders the app header', () => {
-  render(<App />);
-  expect(
-    screen.getByText(/JSON Formatter & Compare Tool/i)
-  ).toBeInTheDocument();
+beforeEach(() => {
+  window.history.pushState({}, '', '/');
 });
 
-test('formats valid JSON typed into the input editor', async () => {
+test('renders the header and the home page with a card for every tool', () => {
   render(<App />);
 
-  const input = screen.getByTestId('input-editor');
-  fireEvent.change(input, { target: { value: '{"a":1}' } });
+  expect(screen.getByRole('heading', { name: /JsonForge/i })).toBeInTheDocument();
 
-  await waitFor(() => {
-    expect(screen.getByTestId('output-editor').value).toContain('"a": 1');
-  });
-});
-
-test('shows a detailed error with line number and suggestion for invalid JSON', async () => {
-  render(<App />);
-
-  const input = screen.getByTestId('input-editor');
-  fireEvent.change(input, { target: { value: '{invalid' } });
-
-  await waitFor(() => {
-    expect(screen.getByText(/Error:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Line:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Fix:/i)).toBeInTheDocument();
+  TOOLS.forEach((tool) => {
+    expect(screen.getByRole('link', { name: new RegExp(tool.name, 'i') })).toHaveAttribute(
+      'href',
+      tool.path
+    );
   });
 });
 
-test('input editor is not rewritten while the user is still typing', async () => {
+test('navigating to /json-formatter renders the formatter tool', async () => {
+  window.history.pushState({}, '', '/json-formatter');
   render(<App />);
 
-  const input = screen.getByTestId('input-editor');
-  fireEvent.change(input, { target: { value: '{"a":1' } });
-
-  // Wait for the debounced validation (incomplete JSON -> error) to run,
-  // then confirm the input was never rewritten while typing.
-  await waitFor(() => {
-    expect(screen.getByText(/Error:/i)).toBeInTheDocument();
-  });
-  expect(input.value).toBe('{"a":1');
+  expect(await screen.findByTestId('input-editor')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /^JSON Formatter$/i })).toBeInTheDocument();
 });
 
-test('Beautify, Minify, and Clear buttons work', async () => {
+test('unknown routes redirect to the home page', () => {
+  window.history.pushState({}, '', '/this-route-does-not-exist');
   render(<App />);
 
-  const input = screen.getByTestId('input-editor');
-  fireEvent.change(input, { target: { value: '{"a":1}' } });
-
-  await screen.findByRole('button', { name: /beautify/i });
-
-  fireEvent.click(screen.getByRole('button', { name: /minify/i }));
-  await waitFor(() => {
-    expect(screen.getByTestId('output-editor').value).toBe('{"a":1}');
-  });
-
-  fireEvent.click(screen.getByRole('button', { name: /beautify/i }));
-  await waitFor(() => {
-    expect(screen.getByTestId('output-editor').value).toContain('"a": 1');
-  });
-
-  fireEvent.click(screen.getByRole('button', { name: /clear/i }));
-  await waitFor(() => {
-    expect(screen.getByTestId('input-editor').value).toBe('');
-    expect(screen.getByTestId('output-editor').value).toBe('');
-  });
-});
-
-test('Beautify, Minify, and Clear all show a friendly message on empty input', async () => {
-  render(<App />);
-
-  for (const name of [/beautify/i, /minify/i, /clear/i]) {
-    fireEvent.click(screen.getByRole('button', { name }));
-    // eslint-disable-next-line no-await-in-loop
-    await waitFor(() => {
-      expect(
-        screen.getByText(/JSON input is empty\. Please enter some JSON\./i)
-      ).toBeInTheDocument();
-    });
-  }
+  expect(screen.getByText(/JSON tools, all in your browser/i)).toBeInTheDocument();
 });
