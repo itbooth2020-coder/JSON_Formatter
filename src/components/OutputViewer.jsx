@@ -11,8 +11,10 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import Editor from "@monaco-editor/react";
 import { getStatusColors } from "../utils/statusColors";
+import { EMPTY_INPUT_MESSAGE } from "../utils/jsonUtils";
 
 const SUCCESS_MESSAGE_DURATION_MS = 10000;
+const EMPTY_INPUT_ERROR_DURATION_MS = 5000;
 
 const OutputViewer = ({
   output,
@@ -24,9 +26,11 @@ const OutputViewer = ({
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
   const theme = useTheme();
   const statusColors = getStatusColors(theme.palette.mode);
   const isValid = !error && !!output;
+  const isEmptyInputError = error?.message === EMPTY_INPUT_MESSAGE;
 
   // The "Valid JSON" message only needs to confirm the moment things
   // became valid -- auto-hide it after a while so it doesn't linger
@@ -42,6 +46,23 @@ const OutputViewer = ({
     const timer = setTimeout(() => setShowSuccess(false), SUCCESS_MESSAGE_DURATION_MS);
     return () => clearTimeout(timer);
   }, [isValid, output]);
+
+  // Real validation errors stay visible until fixed, but the "input is
+  // empty" error isn't actionable in the same way -- there's nothing to
+  // fix, just nothing typed yet -- so it auto-hides instead of lingering.
+  useEffect(() => {
+    if (!error) {
+      setShowError(false);
+      return;
+    }
+
+    setShowError(true);
+
+    if (!isEmptyInputError) return;
+
+    const timer = setTimeout(() => setShowError(false), EMPTY_INPUT_ERROR_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [error, isEmptyInputError]);
 
   const copyToClipboard = async () => {
     if (!output) return;
@@ -86,7 +107,7 @@ const OutputViewer = ({
       </IconButton>
 
       {/* Error panel */}
-      {error && (
+      {error && showError && (
         <div
           style={{
             background: statusColors.error.background,

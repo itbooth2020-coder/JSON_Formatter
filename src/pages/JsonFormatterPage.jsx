@@ -3,10 +3,10 @@ import { Box, Typography } from "@mui/material";
 import JsonEditor from "../components/JsonEditor";
 import ActionBar from "../components/ActionBar";
 import OutputViewer from "../components/OutputViewer";
-import { validateAndFormatJSON } from "../utils/jsonUtils";
+import { validateAndFormatJSON, EMPTY_INPUT_MESSAGE } from "../utils/jsonUtils";
 
 const EMPTY_INPUT_ERROR = {
-  message: "JSON input is empty. Please enter some JSON.",
+  message: EMPTY_INPUT_MESSAGE,
 };
 
 // Shared core behind /json-formatter, /json-validator, /json-beautifier,

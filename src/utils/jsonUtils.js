@@ -1,5 +1,7 @@
 import jsonlint from "jsonlint-mod";
 
+export const EMPTY_INPUT_MESSAGE = "JSON input is empty. Please enter some JSON.";
+
 export const validateAndFormatJSON = (input) => {
   try {
     const parsed = jsonlint.parse(input);
