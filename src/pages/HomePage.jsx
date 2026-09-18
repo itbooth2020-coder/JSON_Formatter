@@ -2,8 +2,11 @@ import React from "react";
 import { Box, Typography, Card, CardActionArea, CardContent, Grid } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { TOOLS } from "../toolsConfig";
+import usePageTitle from "../hooks/usePageTitle";
 
 const HomePage = () => {
+  usePageTitle("Free Online JSON Validator & Beautifier");
+
   return (
     <Box sx={{ py: 2 }}>
       <Typography variant="h4" component="h2" sx={{ fontWeight: 700, mb: 1 }}>
@@ -21,6 +24,8 @@ const HomePage = () => {
               <CardActionArea
                 component={RouterLink}
                 to={tool.path}
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
                   height: "100%",
                   p: 2,

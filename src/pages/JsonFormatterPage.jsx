@@ -4,6 +4,7 @@ import JsonEditor from "../components/JsonEditor";
 import ActionBar from "../components/ActionBar";
 import OutputViewer from "../components/OutputViewer";
 import { validateAndFormatJSON, EMPTY_INPUT_MESSAGE } from "../utils/jsonUtils";
+import usePageTitle from "../hooks/usePageTitle";
 
 const EMPTY_INPUT_ERROR = {
   message: EMPTY_INPUT_MESSAGE,
@@ -17,6 +18,8 @@ const JsonFormatterPage = ({ title, description }) => {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState(null);
+
+  usePageTitle(title);
 
   const debounceRef = useRef(null);
 

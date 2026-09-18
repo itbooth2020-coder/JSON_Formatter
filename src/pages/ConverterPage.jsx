@@ -4,6 +4,7 @@ import JsonEditor from "../components/JsonEditor";
 import ActionBar from "../components/ActionBar";
 import OutputViewer from "../components/OutputViewer";
 import { validateAndFormatJSON, EMPTY_INPUT_MESSAGE } from "../utils/jsonUtils";
+import usePageTitle from "../hooks/usePageTitle";
 
 const EMPTY_INPUT_ERROR = {
   message: EMPTY_INPUT_MESSAGE,
@@ -13,10 +14,12 @@ const EMPTY_INPUT_ERROR = {
 // schema generator and every json-to-X converter page. `convert` receives
 // the already-parsed JSON value and returns the output string (or throws
 // an Error with a user-facing message if the shape doesn't fit).
-const ConverterPage = ({ title, description, convert, outputLanguage, successMessage }) => {
+const ConverterPage = ({ title, description, convert, outputLanguage, successMessage, fileExtension }) => {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState(null);
+
+  usePageTitle(title);
 
   const debounceRef = useRef(null);
 
@@ -100,6 +103,7 @@ const ConverterPage = ({ title, description, convert, outputLanguage, successMes
             output={output}
             error={error}
             language={outputLanguage}
+            fileExtension={fileExtension}
             successMessage={successMessage}
             label="Converted Output"
           />

@@ -4,10 +4,12 @@ import { JSONPath } from "jsonpath-plus";
 import JsonEditor from "../components/JsonEditor";
 import { validateAndFormatJSON } from "../utils/jsonUtils";
 import { getStatusColors } from "../utils/statusColors";
+import usePageTitle from "../hooks/usePageTitle";
 
 const JsonPathTesterPage = ({ title, description }) => {
   const [input, setInput] = useState("");
   const [path, setPath] = useState("$");
+  usePageTitle(title);
   const theme = useTheme();
   const statusColors = getStatusColors(theme.palette.mode);
 

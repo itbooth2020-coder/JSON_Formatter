@@ -4,17 +4,28 @@ import {
   Typography,
   IconButton,
   Snackbar,
+  Tooltip,
   useTheme,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
+import DownloadIcon from "@mui/icons-material/Download";
 import Editor from "@monaco-editor/react";
 import { getStatusColors } from "../utils/statusColors";
 import { EMPTY_INPUT_MESSAGE } from "../utils/jsonUtils";
 
-const SUCCESS_MESSAGE_DURATION_MS = 10000;
+const SUCCESS_MESSAGE_DURATION_MS = 5000;
 const EMPTY_INPUT_ERROR_DURATION_MS = 5000;
+
+const LANGUAGE_EXTENSIONS = {
+  json: "json",
+  xml: "xml",
+  yaml: "yaml",
+  typescript: "ts",
+  java: "java",
+  csharp: "cs",
+};
 
 const OutputViewer = ({
   output,
@@ -22,6 +33,7 @@ const OutputViewer = ({
   language = "json",
   successMessage = "Valid JSON",
   label = "Formatted Output",
+  fileExtension = LANGUAGE_EXTENSIONS[language] || "txt",
 }) => {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -77,6 +89,21 @@ const OutputViewer = ({
     }
   };
 
+  const downloadOutput = () => {
+    if (!output) return;
+
+    const url = URL.createObjectURL(
+      new Blob([output], { type: "text/plain;charset=utf-8" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `output.${fileExtension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Paper
       variant="outlined"
@@ -91,6 +118,18 @@ const OutputViewer = ({
       }}
     >
       <Typography variant="h6">{label}</Typography>
+
+      <Tooltip title={`Download .${fileExtension}`}>
+        <span style={{ position: "absolute", top: 10, right: 54 }}>
+          <IconButton
+            onClick={downloadOutput}
+            disabled={!output}
+            aria-label="Download output"
+          >
+            <DownloadIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
 
       {/* Copy button with toggle icon */}
       <IconButton

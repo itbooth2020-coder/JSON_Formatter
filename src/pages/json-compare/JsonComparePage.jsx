@@ -4,6 +4,7 @@ import JsonEditor from "../../components/JsonEditor";
 import { validateAndFormatJSON } from "../../utils/jsonUtils";
 import { diffJson } from "../../utils/jsonDiff";
 import { getStatusColors } from "../../utils/statusColors";
+import usePageTitle from "../../hooks/usePageTitle";
 
 // Dedicated core for /json-compare -- a replica of JsonDiffPage.jsx, kept
 // as its own copy under this route's own folder rather than sharing the
@@ -11,6 +12,7 @@ import { getStatusColors } from "../../utils/statusColors";
 const JsonComparePage = ({ title, description }) => {
   const [left, setLeft] = useState("");
   const [right, setRight] = useState("");
+  usePageTitle(title);
   const theme = useTheme();
   const statusColors = getStatusColors(theme.palette.mode);
 

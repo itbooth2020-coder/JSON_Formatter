@@ -11,6 +11,7 @@ const JsonToCsvRoute = () => (
     description={tool.tagline}
     convert={jsonToCsv}
     outputLanguage="plaintext"
+    fileExtension="csv"
     successMessage="Converted to CSV"
   />
 );

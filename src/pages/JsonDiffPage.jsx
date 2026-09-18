@@ -4,12 +4,14 @@ import JsonEditor from "../components/JsonEditor";
 import { validateAndFormatJSON } from "../utils/jsonUtils";
 import { diffJson } from "../utils/jsonDiff";
 import { getStatusColors } from "../utils/statusColors";
+import usePageTitle from "../hooks/usePageTitle";
 
 // Backs both /json-diff and /json-compare -- they're the same tool under
 // two names people search for interchangeably.
 const JsonDiffPage = ({ title, description }) => {
   const [left, setLeft] = useState("");
   const [right, setRight] = useState("");
+  usePageTitle(title);
   const theme = useTheme();
   const statusColors = getStatusColors(theme.palette.mode);
 

@@ -69,6 +69,8 @@ const Header = ({ mode, onToggleMode }) => {
               key={tool.path}
               component={RouterLink}
               to={tool.path}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => setAnchorEl(null)}
             >
               {tool.name}
