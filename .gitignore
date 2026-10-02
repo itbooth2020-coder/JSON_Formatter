@@ -24,6 +24,7 @@ yarn-error.log*
 
 # local-only analysis docs (never pushed, per explicit instruction)
 /Generate-MD-Files/
+/design-samples/
 
 # NOTE: .claude/agents/ is intentionally NOT gitignored -- gitignoring it
 # previously made Claude Code's agent picker stop discovering the custom
