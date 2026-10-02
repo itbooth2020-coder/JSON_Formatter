@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Container, Box, ThemeProvider, CssBaseline } from "@mui/material";
+import React, { useState, useMemo, useEffect, Suspense, lazy } from "react";
+import { Container, Box, ThemeProvider, CssBaseline, CircularProgress } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -20,6 +20,12 @@ import JsonToTypeScriptRoute from "./pages/json-to-typescript";
 import JsonToJavaRoute from "./pages/json-to-java";
 import JsonToCSharpRoute from "./pages/json-to-csharp";
 import { getAppTheme } from "./theme";
+
+// Lazy-loaded (route-level code split) rather than statically imported
+// like every other route above: this page pulls in @xyflow/react + elkjs,
+// which would otherwise land in every page's initial bundle since CRA's
+// router here doesn't code-split by default.
+const JsonVisualizerRoute = lazy(() => import("./pages/json-visualizer"));
 
 const THEME_STORAGE_KEY = "jsonforge:theme-mode";
 
@@ -89,6 +95,21 @@ function App() {
               <Route path="/json-to-typescript" element={<JsonToTypeScriptRoute />} />
               <Route path="/json-to-java" element={<JsonToJavaRoute />} />
               <Route path="/json-to-csharp" element={<JsonToCSharpRoute />} />
+
+              <Route
+                path="/json-visualizer"
+                element={
+                  <Suspense
+                    fallback={
+                      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+                        <CircularProgress />
+                      </Box>
+                    }
+                  >
+                    <JsonVisualizerRoute />
+                  </Suspense>
+                }
+              />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

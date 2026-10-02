@@ -302,6 +302,26 @@ export const TOOLS = [
       },
     ],
   },
+  {
+    path: "/json-visualizer",
+    name: "JSON Visualizer",
+    tagline: "Explore JSON as an interactive, pannable node graph.",
+    question: "How do I visualize JSON as a graph?",
+    answer:
+      "Paste your JSON on one side and it's rendered as an interactive node graph on the other — nested objects and arrays become connected cards you can pan, zoom, collapse, and click into. Great for exploring large or unfamiliar API responses.",
+    about:
+      "Reading deeply nested JSON top to bottom is hard once it gets large. The JSON Visualizer renders it as a graph instead: each object or array becomes its own node, connected to its parent by a labeled edge, so you can see the shape of the data at a glance and drill into any part of it.",
+    faq: [
+      {
+        q: "What happens to very large JSON documents?",
+        a: "The graph stops building past a node-count limit and shows a truncation warning instead of freezing the tab — reduce or split very large documents for a complete graph.",
+      },
+      {
+        q: "Can I search for a specific field or value?",
+        a: "Yes — use the search box in the top menu bar to highlight matching nodes and jump between them.",
+      },
+    ],
+  },
 ];
 
 // Fallback footer content for the home page (not a specific tool page).

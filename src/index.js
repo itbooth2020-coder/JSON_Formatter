@@ -4,6 +4,13 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// The guard for the benign "ResizeObserver loop completed with undelivered
+// notifications." browser warning lives in public/index.html as an inline
+// <script> instead of here -- it has to run before CRA's dev-client/error-
+// overlay script registers its own window 'error' listener (which happens
+// before this module ever executes), so stopImmediatePropagation() can
+// actually keep the message from reaching it. See that file for details.
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
