@@ -99,6 +99,12 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON", headerAc
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        // Explicit rather than relying solely on CssBaseline's global reset
+        // -- the padding (p: 2) must be subtracted from, not added on top
+        // of, the 100% height below, or this Paper renders taller than its
+        // pane and gets silently clipped by the Panel's overflow:hidden
+        // (clipping Monaco's own measured container along with it).
+        boxSizing: "border-box",
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -106,15 +112,30 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON", headerAc
         {headerAction}
       </Box>
 
-      <Box ref={containerRef} sx={{ flex: 1, minHeight: 0 }}>
-        <Editor
-          height="100%"
-          defaultLanguage="json"
-          value={value}
-          theme={theme.palette.mode === "dark" ? "vs-dark" : "light"}
-          onChange={(val) => onChange(val)}
-          onMount={handleMount}
-          options={{
+      <Box
+        ref={containerRef}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          // A definite, directly-positioned containing block for the
+          // absolutely-positioned wrapper below -- more robust than relying
+          // on flex stretch alone to resolve Editor's height="100", and
+          // `overflow: hidden` guarantees this element itself never visually
+          // overflows its own box even if Monaco's internal measurement is
+          // ever a pixel off.
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Box sx={{ position: "absolute", inset: 0 }}>
+          <Editor
+            height="100%"
+            defaultLanguage="json"
+            value={value}
+            theme={theme.palette.mode === "dark" ? "vs-dark" : "light"}
+            onChange={(val) => onChange(val)}
+            onMount={handleMount}
+            options={{
               minimap: { enabled: false },
               fontSize: 14,
               formatOnPaste: true,
@@ -135,8 +156,9 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON", headerAc
               // into view, and makes any genuine overflow's scrollbar
               // obviously draggable instead of a near-invisible hairline.
               padding: { top: 8, bottom: 12 },
-          }}
-          />
+            }}
+            />
+        </Box>
       </Box>
     </Paper>
   );

@@ -65,6 +65,7 @@ const JsonVisualizerPage = ({ title, description }) => {
   const [dropError, setDropError] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
+  const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
 
   const debounceRef = useRef(null);
   const canvasRef = useRef(null);
@@ -380,6 +381,7 @@ const JsonVisualizerPage = ({ title, description }) => {
         onNodeActivate={setSelectedNodeId}
         searchMatchIds={searchMatchIds}
         activeMatchId={activeMatchId}
+        onFullscreenChange={setIsGraphFullscreen}
       />
     </Box>
   );
@@ -527,6 +529,11 @@ const JsonVisualizerPage = ({ title, description }) => {
         node={selectedNode}
         rootValue={rootValue}
         onClose={() => setSelectedNodeId(null)}
+        // The browser only presents the full-screen element (and its
+        // descendants) while the graph canvas is full screen -- redirect
+        // the Dialog's portal there so it's still visible; falls back to
+        // the Modal's normal document.body root the rest of the time.
+        container={isGraphFullscreen ? canvasRef.current?.getFullscreenContainer?.() : undefined}
       />
 
       <Snackbar

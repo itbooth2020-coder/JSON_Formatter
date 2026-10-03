@@ -1,5 +1,5 @@
-import React, { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { Box, IconButton, Tooltip, Typography, useTheme } from "@mui/material";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -8,6 +8,8 @@ import {
   Controls,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import VisualizerNode from "./VisualizerNode";
 
 const NODE_TYPES = { jsonNode: VisualizerNode };
@@ -27,13 +29,24 @@ const VisualizerCanvas = forwardRef(
       onNodeActivate,
       searchMatchIds,
       activeMatchId,
+      onFullscreenChange,
     },
     ref
   ) => {
     const theme = useTheme();
     const rfInstanceRef = useRef(null);
     const nodesByIdRef = useRef(new Map());
+    const fullscreenContainerRef = useRef(null);
     const [zoomPct, setZoomPct] = useState(100);
+    // Two independent flags because they're driven by two independent
+    // mechanisms: the native flag mirrors the browser's own fullscreenchange
+    // event (so it stays in sync with Esc, which the browser handles on its
+    // own); the fallback flag is CSS-only state we own entirely, used when
+    // the Fullscreen API is unsupported or rejects (e.g. iframes without
+    // `allow="fullscreen"`, some mobile browsers).
+    const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+    const [isFallbackFullscreen, setIsFallbackFullscreen] = useState(false);
+    const isFullscreen = isNativeFullscreen || isFallbackFullscreen;
 
     const hasChildNodesById = useMemo(() => {
       const map = new Map();
@@ -95,7 +108,76 @@ const VisualizerCanvas = forwardRef(
           duration: 300,
         });
       },
+      // So JsonVisualizerPage can redirect NodeDetailModal's Dialog portal
+      // here while in full screen -- a Dialog portaled to its default
+      // document.body root would be invisible, since the browser only
+      // presents the fullscreen element (and its descendants) on screen.
+      getFullscreenContainer: () => fullscreenContainerRef.current,
     }));
+
+    // Mirrors the browser's own fullscreenchange event (fired on Esc, the
+    // browser/OS fullscreen UI, etc.) so the icon and NodeDetailModal's
+    // portal target stay correct even when the user didn't use our button
+    // to exit.
+    useEffect(() => {
+      const handleFullscreenChange = () => {
+        setIsNativeFullscreen(document.fullscreenElement === fullscreenContainerRef.current);
+      };
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    }, []);
+
+    // The CSS-only fallback path has no browser-level Esc handling of its
+    // own (unlike the native Fullscreen API), so wire it up ourselves.
+    useEffect(() => {
+      if (!isFallbackFullscreen) return undefined;
+      const handleKeyDown = (e) => {
+        if (e.key === "Escape") setIsFallbackFullscreen(false);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isFallbackFullscreen]);
+
+    useEffect(() => {
+      onFullscreenChange?.(isFullscreen);
+    }, [isFullscreen, onFullscreenChange]);
+
+    // React Flow needs the container's *new* size to actually land before
+    // fitView can frame correctly -- same short-delay pattern used
+    // elsewhere in this app for the mobile tab switch and the editor
+    // collapse/expand toggle (immediate fitView can still race the
+    // ResizeObserver that reports the resize to React Flow).
+    useEffect(() => {
+      const id = setTimeout(() => rfInstanceRef.current?.fitView({ padding: 0.15 }), 150);
+      return () => clearTimeout(id);
+    }, [isFullscreen]);
+
+    const handleToggleFullscreen = async () => {
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch {
+          // Nothing more we can do -- leave the UI as-is.
+        }
+        return;
+      }
+      if (isFallbackFullscreen) {
+        setIsFallbackFullscreen(false);
+        return;
+      }
+
+      const el = fullscreenContainerRef.current;
+      if (el && document.fullscreenEnabled && el.requestFullscreen) {
+        try {
+          await el.requestFullscreen();
+          return; // the fullscreenchange listener above picks up the new state
+        } catch {
+          // Rejected (permissions policy, user gesture requirements in some
+          // embeds, etc.) -- fall through to the CSS-only fallback below.
+        }
+      }
+      setIsFallbackFullscreen(true);
+    };
 
     if (!graph.nodes.length) {
       return (
@@ -114,7 +196,31 @@ const VisualizerCanvas = forwardRef(
     }
 
     return (
-      <Box sx={{ flex: 1, position: "relative", minHeight: 0 }}>
+      <Box
+        ref={fullscreenContainerRef}
+        sx={
+          isFallbackFullscreen
+            ? {
+                // The native Fullscreen API handles filling the screen (and
+                // its own backdrop) on its own -- this branch only applies
+                // when falling back to a plain CSS overlay instead.
+                position: "fixed",
+                inset: 0,
+                zIndex: (t) => t.zIndex.modal + 1,
+                bgcolor: "background.default",
+              }
+            : {
+                flex: 1,
+                position: "relative",
+                minHeight: 0,
+                // Explicit rather than inherited: the browser's default
+                // fullscreen backdrop is black, which would otherwise show
+                // through if this element itself had no background of its
+                // own once native fullscreen is active.
+                bgcolor: "background.default",
+              }
+        }
+      >
         <ReactFlowProvider>
           <ReactFlow
             nodes={rfNodes}
@@ -162,6 +268,26 @@ const VisualizerCanvas = forwardRef(
         >
           {zoomPct}%
         </Box>
+
+        <Tooltip title={isFullscreen ? "Exit full screen" : "Enter full screen"}>
+          <IconButton
+            size="small"
+            onClick={handleToggleFullscreen}
+            aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              zIndex: 5,
+              background: theme.palette.background.paper,
+              border: 1,
+              borderColor: "divider",
+              "&:hover": { background: theme.palette.action.hover },
+            }}
+          >
+            {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
       </Box>
     );
   }

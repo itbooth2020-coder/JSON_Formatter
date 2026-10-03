@@ -21,7 +21,7 @@ import { getValueAtPath } from "../../utils/jsonGraph";
 // Click-node modal: shows that node's subtree as formatted JSON plus its
 // JSON path, with a copy button mirroring OutputViewer's copied/copyFailed
 // Snackbar pattern.
-const NodeDetailModal = ({ open, node, rootValue, onClose }) => {
+const NodeDetailModal = ({ open, node, rootValue, onClose, container }) => {
   const theme = useTheme();
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -45,7 +45,19 @@ const NodeDetailModal = ({ open, node, rootValue, onClose }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      // While the graph canvas is in full screen, only that element (and
+      // its descendants) is actually presented by the browser -- a Dialog
+      // portaled to its default document.body root would be invisible, so
+      // JsonVisualizerPage redirects the portal there via this prop when
+      // relevant (undefined the rest of the time, which keeps the normal
+      // document.body portal behavior).
+      container={container}
+    >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Typography variant="subtitle1" component="span" sx={{ fontWeight: 700, flex: 1 }}>
           {node?.label ?? "root"}
