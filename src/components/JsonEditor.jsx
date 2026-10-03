@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Box, Paper, Typography, useTheme } from "@mui/material";
 import Editor from "@monaco-editor/react";
 
-const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON" }) => {
+const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON", headerAction }) => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const decorationIdsRef = useRef([]);
@@ -101,7 +101,10 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON" }) => {
         height: "100%",
       }}
     >
-      <Typography variant="h6">{label}</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="h6">{label}</Typography>
+        {headerAction}
+      </Box>
 
       <Box ref={containerRef} sx={{ flex: 1, minHeight: 0 }}>
         <Editor
@@ -121,6 +124,17 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON" }) => {
               glyphMargin: true,
               folding: true,
               scrollBeyondLastLine: false,
+              // Monaco's content height is `lineCount * lineHeight` with no
+              // bottom cushion by default -- for almost any container
+              // height that isn't an exact multiple of the (19px) line
+              // height, that leaves the last line's bottom few pixels sitting
+              // flush against (or a hair past) the viewport edge, revealed
+              // only by dragging an ~8px sliver of scrollbar most users will
+              // never notice is there. A real bottom padding guarantees the
+              // last line always has visible breathing room once scrolled
+              // into view, and makes any genuine overflow's scrollbar
+              // obviously draggable instead of a near-invisible hairline.
+              padding: { top: 8, bottom: 12 },
           }}
           />
       </Box>

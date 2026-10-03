@@ -104,6 +104,32 @@ test("Live Transform off: the graph does not update until Transform is clicked",
   });
 });
 
+test("collapsing and expanding the editor panel keeps the editor mounted (content/undo state preserved)", async () => {
+  renderPage();
+
+  const collapseButton = screen.getByRole("button", { name: /collapse editor/i });
+  const inputBefore = screen.getByTestId("input-editor");
+  expect(inputBefore.value).toContain("Ada Lovelace");
+
+  fireEvent.click(collapseButton);
+
+  // The rail's "Expand editor" button appears, and the editor itself is
+  // still in the DOM (just visually covered by the rail overlay) rather
+  // than unmounted -- that's what actually preserves Monaco's undo stack
+  // in the real browser (verified separately via Playwright).
+  const expandButton = await screen.findByRole("button", { name: /expand editor/i });
+  expect(screen.queryByRole("button", { name: /collapse editor/i })).not.toBeInTheDocument();
+  const inputAfterCollapse = screen.getByTestId("input-editor");
+  expect(inputAfterCollapse).toBe(inputBefore);
+  expect(inputAfterCollapse.value).toContain("Ada Lovelace");
+
+  fireEvent.click(expandButton);
+
+  await screen.findByRole("button", { name: /collapse editor/i });
+  expect(screen.queryByRole("button", { name: /expand editor/i })).not.toBeInTheDocument();
+  expect(screen.getByTestId("input-editor")).toBe(inputBefore);
+});
+
 test("empty input shows the same empty-input error message contract as other pages", async () => {
   renderPage();
 

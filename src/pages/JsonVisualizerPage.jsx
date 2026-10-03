@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Typography, Tabs, Tab, useMediaQuery, Snackbar } from "@mui/material";
+import { Box, Typography, Tabs, Tab, useMediaQuery, Snackbar, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import JsonEditor from "../components/JsonEditor";
 import VisualizerMenuBar from "../components/visualizer/VisualizerMenuBar";
 import VisualizerCanvas from "../components/visualizer/VisualizerCanvas";
@@ -62,10 +64,12 @@ const JsonVisualizerPage = ({ title, description }) => {
   const [mobileTab, setMobileTab] = useState("editor");
   const [dropError, setDropError] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
 
   const debounceRef = useRef(null);
   const canvasRef = useRef(null);
   const layoutRequestRef = useRef(0);
+  const editorPanelRef = useRef(null);
 
   // Input editor always mirrors exactly what the user typed; only the
   // debounced graph is derived from it, so the input is never rewritten
@@ -118,6 +122,51 @@ const JsonVisualizerPage = ({ title, description }) => {
     const id = setTimeout(() => canvasRef.current?.fitView(), 150);
     return () => clearTimeout(id);
   }, [isMobile, mobileTab]);
+
+  // Same "fitView needs the container's new size to actually land" story as
+  // the mobile tab effect above, but for collapsing/expanding the editor
+  // panel: the graph pane's width changes (grows when the editor collapses,
+  // shrinks back when it expands), so re-fit shortly after so the graph
+  // keeps looking intentionally framed instead of off-center.
+  const refitGraphSoon = () => {
+    setTimeout(() => canvasRef.current?.fitView(), 150);
+  };
+
+  // react-resizable-panels drives collapse state itself (including
+  // snapping to collapsed when the handle is dragged past minSize) -- these
+  // callbacks just mirror that into React state for the rail UI/icon below,
+  // they don't drive the collapse themselves.
+  const handleEditorPanelCollapse = () => {
+    setIsEditorCollapsed(true);
+    refitGraphSoon();
+  };
+  const handleEditorPanelExpand = () => {
+    setIsEditorCollapsed(false);
+    refitGraphSoon();
+  };
+
+  const handleToggleEditorCollapse = () => {
+    const panel = editorPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  };
+
+  // Optional Ctrl/Cmd+B shortcut for the collapse toggle -- only acts when
+  // the keydown target is outside the Monaco editor itself, so it can never
+  // intercept or fight any key handling Monaco does internally.
+  useEffect(() => {
+    if (isMobile) return undefined;
+
+    const handleKeyDown = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "b") return;
+      if (e.target?.closest?.(".monaco-editor")) return;
+      e.preventDefault();
+      handleToggleEditorCollapse();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobile]);
 
   const handleInputChange = (val) => {
     setInput(val);
@@ -289,9 +338,34 @@ const JsonVisualizerPage = ({ title, description }) => {
         outline: isDragOver ? "2px dashed" : "none",
         outlineColor: "primary.main",
         outlineOffset: -4,
+        // Stays mounted (not unmounted) while the editor panel is collapsed,
+        // so Monaco's model/undo stack survives -- visibility:hidden (rather
+        // than unmounting) keeps it out of the tab order and accessibility
+        // tree too, on top of the opaque rail overlay already covering it
+        // visually.
+        visibility: isEditorCollapsed ? "hidden" : "visible",
       }}
     >
-      <JsonEditor value={input} onChange={handleInputChange} errorLine={error?.line ?? null} />
+      <JsonEditor
+        value={input}
+        onChange={handleInputChange}
+        errorLine={error?.line ?? null}
+        headerAction={
+          // Omitted (rather than just visually hidden) once collapsed -- the
+          // editor pane stays mounted underneath the rail overlay for
+          // content/undo-state preservation, so without this check a
+          // "Collapse editor" button that's covered and unreachable by
+          // sighted users would still sit in the keyboard tab order.
+          !isMobile &&
+          !isEditorCollapsed && (
+            <Tooltip title="Collapse editor">
+              <IconButton size="small" onClick={handleToggleEditorCollapse} aria-label="Collapse editor">
+                <KeyboardDoubleArrowLeftIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )
+        }
+      />
     </Box>
   );
 
@@ -375,8 +449,53 @@ const JsonVisualizerPage = ({ title, description }) => {
               direction="horizontal"
               style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, height: "auto" }}
             >
-              <Panel defaultSize={42} minSize={20}>
-                {editorPane}
+              <Panel
+                ref={editorPanelRef}
+                defaultSize={42}
+                minSize={20}
+                collapsible
+                collapsedSize={4}
+                onCollapse={handleEditorPanelCollapse}
+                onExpand={handleEditorPanelExpand}
+              >
+                <Box sx={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                  {editorPane}
+                  {isEditorCollapsed && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: 2,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        pt: 1.5,
+                        gap: 1.5,
+                        bgcolor: "background.paper",
+                        borderRight: 1,
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Tooltip title="Expand editor" placement="right">
+                        <IconButton size="small" onClick={handleToggleEditorCollapse} aria-label="Expand editor">
+                          <KeyboardDoubleArrowRightIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          writingMode: "vertical-rl",
+                          transform: "rotate(180deg)",
+                          color: "text.secondary",
+                          letterSpacing: 0.5,
+                          userSelect: "none",
+                        }}
+                      >
+                        Input JSON
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
               </Panel>
               <PanelResizeHandle
                 style={{
