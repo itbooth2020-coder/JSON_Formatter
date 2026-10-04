@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Box, Typography, Tabs, Tab, useMediaQuery, Snackbar, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -17,6 +17,11 @@ import usePageTitle from "../hooks/usePageTitle";
 const EMPTY_INPUT_ERROR = { message: EMPTY_INPUT_MESSAGE };
 const EMPTY_BASE_GRAPH = { nodes: [], edges: [], nodeCount: 0, truncated: false };
 const DEBOUNCE_MS = 500;
+
+// Floor for the workspace height on very short windows -- below this the
+// editor/graph panes and status bar stop being usable, so we'd rather let
+// the page scroll a little than shrink further.
+const MIN_WORKSPACE_HEIGHT = 420;
 
 // Shown on first load so the graph is visible immediately instead of an
 // empty "paste your JSON" state -- mirrors jsoncrack.com's default sample.
@@ -66,11 +71,51 @@ const JsonVisualizerPage = ({ title, description }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
   const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
+  const [workspaceHeight, setWorkspaceHeight] = useState(MIN_WORKSPACE_HEIGHT);
 
   const debounceRef = useRef(null);
   const canvasRef = useRef(null);
   const layoutRequestRef = useRef(0);
   const editorPanelRef = useRef(null);
+  const workspaceRef = useRef(null);
+
+  // Size the workspace (menu bar + split panes + status bar) to exactly
+  // fill the viewport below it -- like jsoncrack.com/editor -- instead of a
+  // fixed minHeight, so the status bar is never pushed below the fold. A
+  // fixed px height (rather than e.g. `calc(100vh - 220px)`) is the most
+  // robust option here: the offset above the workspace isn't a constant --
+  // it depends on the header's actual rendered height and whether the page
+  // title/description wraps to more lines at a given width -- so measuring
+  // the real DOM offset is the only way to get an exact fit at every
+  // viewport size, rather than a guessed constant that's wrong as soon as
+  // content wraps differently. `useLayoutEffect` (not `useEffect`) runs the
+  // first measurement before the browser paints, so the workspace never
+  // flashes at the wrong height on load.
+  useLayoutEffect(() => {
+    const updateWorkspaceHeight = () => {
+      const el = workspaceRef.current;
+      if (!el || typeof window === "undefined") return;
+      const rect = el.getBoundingClientRect();
+      // rect.top is relative to the *current* scroll position; adding
+      // scrollY reconstructs the workspace's offset from the top of the
+      // document, which is what "fits the viewport below it" actually
+      // means (and keeps the computed height stable regardless of
+      // whatever the current scroll position happens to be).
+      const documentTop = rect.top + window.scrollY;
+      const available = window.innerHeight - documentTop;
+      setWorkspaceHeight(Math.max(MIN_WORKSPACE_HEIGHT, Math.floor(available)));
+    };
+
+    updateWorkspaceHeight();
+    // Custom webfonts (JetBrains Mono / Inter) can still be loading at
+    // first paint and shift the title/description's wrapped height once
+    // they do -- re-measure once they're confirmed ready, in addition to
+    // the synchronous first pass above.
+    document.fonts?.ready?.then(updateWorkspaceHeight).catch(() => {});
+
+    window.addEventListener("resize", updateWorkspaceHeight);
+    return () => window.removeEventListener("resize", updateWorkspaceHeight);
+  }, []);
 
   // Input editor always mirrors exactly what the user typed; only the
   // debounced graph is derived from it, so the input is never rewritten
@@ -398,9 +443,10 @@ const JsonVisualizerPage = ({ title, description }) => {
       )}
 
       <Box
+        ref={workspaceRef}
         sx={{
-          flex: 1,
-          minHeight: { xs: 480, md: 600 },
+          flexShrink: 0,
+          height: workspaceHeight,
           display: "flex",
           flexDirection: "column",
           border: 1,

@@ -59,6 +59,53 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON", headerAc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorLine, isDark]);
 
+  // `scrollbar.alwaysConsumeMouseWheel: false` (set below) is documented to
+  // make Monaco stop trapping wheel events once it hits its own scroll
+  // bounds -- but verified directly against the actual Monaco build this
+  // app loads (0.55.1 via @monaco-editor/react's CDN loader) that it
+  // doesn't: with only that option set, Monaco's own content never scrolls
+  // via wheel at all (confirmed by checking the editor's rendered first
+  // line stays identical through many wheel events) and every wheel event
+  // goes straight to the page instead, even while the editor has thousands
+  // of px left to scroll. So we drive the "scroll the editor until it's
+  // exhausted, then let the page take over" behavior ourselves, using
+  // Monaco's own scroll APIs as the source of truth for whether it's
+  // actually at a boundary. `alwaysConsumeMouseWheel: false` is still kept
+  // (see below) because without it Monaco's own internal handler calls
+  // stopPropagation() on every wheel event, which would stop this handler
+  // (attached to an ancestor) from ever running at all.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const handleWheel = (e) => {
+      const editor = editorRef.current;
+      if (!editor || e.deltaY === 0) return;
+
+      const scrollTop = editor.getScrollTop();
+      const maxScrollTop = Math.max(0, editor.getScrollHeight() - editor.getLayoutInfo().height);
+      const scrollingDown = e.deltaY > 0;
+      const atBoundary = scrollingDown ? scrollTop >= maxScrollTop - 1 : scrollTop <= 0;
+
+      if (atBoundary) {
+        // Nothing left for the editor to scroll in this direction -- leave
+        // the event alone so its default action (scrolling the page) applies.
+        return;
+      }
+
+      e.preventDefault();
+      editor.setScrollTop(scrollTop + e.deltaY);
+    };
+
+    // React's synthetic onWheel is registered passively by default, so
+    // `e.preventDefault()` inside it is silently ignored -- a plain native
+    // listener with `{ passive: false }` is the only reliable way to
+    // actually suppress the page's default scroll for the "editor still has
+    // room" case above.
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
+
   // Monaco's own `automaticLayout: true` re-measures and calls
   // `editor.layout()` *synchronously inside its own internal
   // ResizeObserver callback*, which itself resizes the editor's DOM in the
@@ -156,6 +203,11 @@ const JsonEditor = ({ value, onChange, errorLine, label = "Input JSON", headerAc
               // into view, and makes any genuine overflow's scrollbar
               // obviously draggable instead of a near-invisible hairline.
               padding: { top: 8, bottom: 12 },
+              // Required for the wheel handler above to ever run at all --
+              // see that effect's comment for the full story (this alone
+              // does *not* give the scroll-then-pass-through behavior by
+              // itself in the Monaco build this app loads).
+              scrollbar: { alwaysConsumeMouseWheel: false },
             }}
             />
         </Box>
